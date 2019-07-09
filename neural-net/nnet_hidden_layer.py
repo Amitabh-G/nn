@@ -1,0 +1,167 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Nov 22 15:42:32 2018
+
+@author: amitabh.gunjan
+"""
+import numpy as np
+import math 
+
+np.random.seed(seed = 2)
+
+### Genrating dummy data for neural network regression.
+
+def generate_input(frm, to, noise_mean, noise_sd, multiplier):
+    inpt = np.arange(frm, to) + np.random.normal(noise_mean, noise_sd, size = (to - frm))
+    output = inpt*multiplier + np.random.normal(noise_mean, noise_sd, size = (to - frm))
+    
+    return(inpt, output)
+
+def init_weights(input_array, num_neurons):
+
+    # Need to create a weight matrix where earch row is a weight vector -- corresponding to one neuron. 
+    # Current case is the one with just one neuron. -- The simplest case.
+    weights = np.random.normal(0, 0.1, size = np.shape(input_array))
+    return(weights)
+
+
+
+def hidden_layer_one(input_array, num_neurons):
+    '''
+    The first hidden layer of the network.
+
+    Weights:
+    The weights matrix is a random matrix generated from said probability distribution. 
+        Each neuron's weights correspond to a row vector.
+
+    Bias:
+        Vector of size = num_neurons*1
+
+    Operation:
+    Add the result of multiplication of each row to the input from the input layer.
+    '''
+    print('np.shape(input_array)', np.shape(input_array))
+    weights_matrix = np.random.rand(num_neurons, int(np.shape(input_array)[0]))
+    bias = np.random.rand(num_neurons, 1) 
+    # act = bias + sum(weights_matrix*activation) 
+    act = bias + weights_matrix.dot(input_array)
+    return act, weights_matrix
+
+
+def network_input(inpt, init_weights):
+    y_hat = inpt*init_weights
+    # print('Y_hat\n', y_hat)
+    return(y_hat)
+
+### Activation function must be chosen based on the problem objective.
+### Relu is used for regression objective.
+### Gradient becomes zero for relu activation function.
+
+def relu_activation(y_hat):
+    relu = []
+    for i in y_hat:
+        relu.append(max(0, i))
+    # print('The relu activated output\n', relu)
+    return(relu)
+
+def sigmoid_activation(y_hat):
+    sig = []
+    for i in y_hat:
+        sig.append(1/(1 + math.exp(-i)))
+    # print('The sigmoid activated output\n', sig)
+    return(sig)
+
+
+
+def output_layer(network_input, input_array):
+    '''
+    The output layer of the network. 
+    The final activation function can be sigmoid or tanh etc.
+
+    Dimensions:
+        The matrix multiplication must give the output as the same size as the input.
+        So, must multiply like :
+            (shape of input array * number of neurons in the previous layer) times the network input -- shape would be (n*1) WHERE number of neurons in the previous layer = n
+    '''
+    num_neurons = np.shape(network_input)
+    weights_matrix = np.random.rand(np.shape(input_array), num_neurons) 
+
+    bias = np.random.rand(np.shape(input_array), 1) 
+    act = bias + weights_matrix.dot(network_input)
+    y_hat = sigmoid_activation(network_input)
+    return y_hat, weights_matrix
+
+
+
+def sigmoid_derivative(sigmoid_activation):
+    '''
+    Analytical derivative of sigmoid function. 
+        derivative of sigmoid = sigma(x)(1-sigma(x))
+    '''
+    derivative = sigmoid_activation*(1 - sigmoid_activation)
+    return derivative
+
+
+def backprop_error(actual_y, input_array):
+
+    '''
+    Back propagation of errors:
+        Steps:
+            1. Compute derivative of loss function wrt the network output y_hat.
+            2. Compute derivative of y_hat wrt the network input to the output layer (lets call it 'z'). z is the activated output from the hidden layer. 
+            3. Compute derivative of z wrt the weights from the hiden layer. 
+            4. Multiply all the derivatives from above steps (1-3) in order to get the derivative of the loss function  wrt the weights in the hidden layer.
+    '''
+    network_input, hidden_weights_matrix = hidden_layer_one(input_array, num_neurons)
+    y_hat, output_weights_matrix = output_layer(network_input, input_array)
+
+    derivative_output_layer = np.dot(network_input.T , 2(y_hat - actual_y)*sigmoid_derivative(y_hat))
+    derivative_hidden_layer = np.dot(input_array.T  , np.dot(2(y_hat - actual_y)*sigmoid_derivative(y_hat), output_weights_matrix.T) ,sigmoid_derivative(network_input))
+
+    output_weights_matrix += derivative_output_layer
+    hidden_weights_matrix += derivative_hidden_layer
+
+    return output_weights_matrix, hidden_weights_matrix
+
+
+#############
+### Constants
+#############
+iterations = 100
+# weightts_list = []
+# dist = 10**(-1)
+
+### Input x and y  
+input_array = generate_input(1, 10, 0, 1, 6)[0]
+actual_y = generate_input(1, 10, 0, 1, 6)[1]
+
+# hidden_layer_one()
+
+
+def train_nnet_one_hidden_layer(input_array, actual_y, num_neurons, iterations):
+    '''
+    Train the neural net with one hidden layer.
+		Back prop the error to the weights in the hidden layer of the network.
+
+    '''
+    network_input, hidden_weights_matrix = hidden_layer_one(input_array, num_neurons)
+    y_hat, output_weights_matrix = output_layer(network_input, input_array)
+
+    for i in range(iterations):
+    	# weights_1 = hidden_weights_matrix
+    	# weights_2 = output_weights_matrix
+        
+        derivative_output_layer = np.dot(network_input.T , 2(y_hat - actual_y)*sigmoid_derivative(y_hat))
+        derivative_hidden_layer = np.dot(input_array.T  , np.dot(2(y_hat - actual_y)*sigmoid_derivative(y_hat), output_weights_matrix.T) ,sigmoid_derivative(network_input))
+
+        output_weights_matrix += derivative_output_layer
+        hidden_weights_matrix += derivative_hidden_layer
+    return None
+
+
+if __name__ == "__main__": 
+    train_nnet_one_hidden_layer(input_array, actual_y, 2, 50)
+
+print('The input array\n', input_array)
+print('The actual Y:\n', actual_y)
+
